@@ -1,4 +1,4 @@
-name: padavanonly-mt7981-23.05
+name: mt7981-ax3000
 # 脚本参考github/haiibo
 # Add a button to trigger the workflow
 on: 
@@ -12,7 +12,7 @@ env:
   UPLOAD_BIN_DIR: false
   UPLOAD_FIRMWARE: false
   FIRMWARE_RELEASE: true
-  FIRMWARE_TAG: padavanonly-mt798x-24.10
+  FIRMWARE_TAG: mt7981-ax3000-24.10
   TZ: Asia/Shanghai
 
 jobs:
@@ -76,7 +76,7 @@ jobs:
       uses: HiGarfield/cachewrtbuild@main
       with:
         ccache: false
-        mixkey: ${{ env.SOURCE_REPO }}-${{ env.REPO_BRANCH }}-${{ env.SOURCE_AUTHOR }}-mt7981-23.05
+        mixkey: ${{ env.SOURCE_REPO }}-${{ env.REPO_BRANCH }}-${{ env.SOURCE_AUTHOR }}-mt7981-ax3000
         prefix: ${{ env.OPENWRT_PATH }}
     
     - name: Install Feeds(安装feeds)
@@ -112,8 +112,6 @@ jobs:
       if: (!cancelled())
       run: df -hT
 
-    # Upload Bin Directory step removed: artifacts are not uploaded via actions/upload-artifact
-
     - name: Organize Files(整理文件)
       if: steps.compile.outputs.status == 'success'
       run: |
@@ -122,8 +120,6 @@ jobs:
         cp $OPENWRT_PATH/.config full.config
         rm -rf packages feeds.buildinfo version.buildinfo
         echo "FIRMWARE_PATH=$PWD" >> $GITHUB_ENV
-
-    # Upload Firmware To Artifact step removed: we do not upload artifacts, release-action will attach files directly
 
     - name: Upload Firmware To Release(发布固件)
       if: steps.compile.outputs.status == 'success' && env.FIRMWARE_RELEASE == 'true'
