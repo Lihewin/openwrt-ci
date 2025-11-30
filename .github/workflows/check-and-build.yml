@@ -20,7 +20,7 @@ jobs:
     
     steps:
     - name: Checkout
-      uses: actions/checkout@main
+      uses: actions/checkout@v4
 
     - name: Get current stored commit hash
       id: stored
@@ -66,7 +66,7 @@ jobs:
         git config --local user.name "GitHub Action"
         git add .repo_commit
         git commit -m "chore: update repo commit hash to ${{ steps.check.outputs.current_commit }}"
-        git push
+        git push || true
 
   Trigger-Build:
     needs: Check-Repo
@@ -79,7 +79,7 @@ jobs:
       with:
         script: |
           const workflowId = 'main.yml';
-          const ref = 'main';
+          const ref = 'master';
           
           try {
             const result = await github.rest.actions.createWorkflowDispatch({
