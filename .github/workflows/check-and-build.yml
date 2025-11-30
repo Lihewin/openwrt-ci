@@ -1,0 +1,100 @@
+name: Check Repo and Build
+
+on:
+  schedule:
+    # 每天 UTC 时间 02:00 (北京时间 10:00) 执行一次
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+env:
+  REPO_URL: https://github.com/padavanonly/immortalwrt-mt798x-6.6.git
+  REPO_BRANCH: "openwrt-24.10-6.6"
+  TZ: Asia/Shanghai
+
+jobs:
+  Check-Repo:
+    runs-on: ubuntu-latest
+    outputs:
+      has_new_commit: ${{ steps.check.outputs.has_new_commit }}
+      current_commit: ${{ steps.check.outputs.current_commit }}
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@main
+
+    - name: Get current stored commit hash
+      id: stored
+      run: |
+        if [ -f ".repo_commit" ]; then
+          STORED_COMMIT=$(cat .repo_commit)
+          echo "stored_commit=$STORED_COMMIT" >> $GITHUB_OUTPUT
+        else
+          echo "stored_commit=" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Fetch latest commit hash from remote repo
+      id: remote
+      run: |
+        LATEST_COMMIT=$(git ls-remote ${{ env.REPO_URL }} refs/heads/${{ env.REPO_BRANCH }} | awk '{print $1}')
+        echo "latest_commit=$LATEST_COMMIT" >> $GITHUB_OUTPUT
+        echo "Latest commit: $LATEST_COMMIT"
+
+    - name: Compare commits and decide to build
+      id: check
+      run: |
+        STORED_COMMIT="${{ steps.stored.outputs.stored_commit }}"
+        LATEST_COMMIT="${{ steps.remote.outputs.latest_commit }}"
+        
+        echo "Stored commit: $STORED_COMMIT"
+        echo "Latest commit: $LATEST_COMMIT"
+        
+        if [ -z "$STORED_COMMIT" ] || [ "$STORED_COMMIT" != "$LATEST_COMMIT" ]; then
+          echo "has_new_commit=true" >> $GITHUB_OUTPUT
+          echo "New commit detected or first run! Will trigger build."
+        else
+          echo "has_new_commit=false" >> $GITHUB_OUTPUT
+          echo "No new commits. Skipping build."
+        fi
+        
+        echo "current_commit=$LATEST_COMMIT" >> $GITHUB_OUTPUT
+
+    - name: Update stored commit hash
+      if: steps.check.outputs.has_new_commit == 'true'
+      run: |
+        echo "${{ steps.check.outputs.current_commit }}" > .repo_commit
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add .repo_commit
+        git commit -m "chore: update repo commit hash to ${{ steps.check.outputs.current_commit }}"
+        git push
+
+  Trigger-Build:
+    needs: Check-Repo
+    if: needs.Check-Repo.outputs.has_new_commit == 'true'
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Trigger main build workflow
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const workflowId = 'padavanonly-mt7981-24.10.yml';
+          const ref = 'main';
+          
+          try {
+            const result = await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: workflowId,
+              ref: ref
+            });
+            console.log('Workflow triggered successfully:', result);
+          } catch (error) {
+            console.error('Failed to trigger workflow:', error);
+            throw error;
+          }
+
+    - name: Notify build triggered
+      run: |
+        echo "Build workflow has been triggered!"
+        echo "Commit: ${{ needs.Check-Repo.outputs.current_commit }}"
