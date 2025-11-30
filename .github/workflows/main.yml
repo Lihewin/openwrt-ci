@@ -1,4 +1,4 @@
-name: mt7981-ax3000
+name: Build MT7981-AX3000
 # 脚本参考github/haiibo
 # Add a button to trigger the workflow
 on: 
@@ -9,7 +9,6 @@ env:
   REPO_BRANCH: "openwrt-24.10-6.6"
   CONFIG_FILE: defconfig/mt7981-ax3000.config
   CACHE_TOOLCHAIN: true
-  UPLOAD_BIN_DIR: false
   UPLOAD_FIRMWARE: false
   FIRMWARE_RELEASE: true
   FIRMWARE_TAG: mt7981-ax3000-24.10
@@ -56,7 +55,7 @@ jobs:
         root-reserve-mb: 1024
 
     - name: Checkout
-      uses: actions/checkout@main
+      uses: actions/checkout@v4
 
     - name: Clone Source Code(克隆源代码)
       run: |
@@ -123,7 +122,7 @@ jobs:
 
     - name: Upload Firmware To Release(发布固件)
       if: steps.compile.outputs.status == 'success' && env.FIRMWARE_RELEASE == 'true'
-      uses: ncipollo/release-action@v1
+      uses: ncipollo/release-action@v1.14.0
       with:
         name: R${{ env.DATE }} for ${{ env.FIRMWARE_TAG }}
         allowUpdates: true
@@ -135,7 +134,7 @@ jobs:
           - 💻 这是mt798x平台使用的 OpenWrt 闭源驱动固件
           - ⚽ 固件源码: ${{ env.REPO_URL }}
           - 💝 源码分支: ${{ env.REPO_BRANCH }}
-          - 🌐 默认地址: 192.168.1.1
+          - 🌐 默认地址: 192.168.6.1
           - 🔑 默认密码: 无
           ### 🧊 固件版本
           - 固件编译前最后一次➦[主源码](${{ env.REPO_URL }})更新记录
