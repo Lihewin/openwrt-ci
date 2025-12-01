@@ -92,23 +92,21 @@ jobs:
         ./scripts/feeds update -a
         ./scripts/feeds install -a
 
-    - name: Load Custom Configuration(加载自定义配置)
-      run: |
-        cd $OPENWRT_PATH
-        if [ -f "$GITHUB_WORKSPACE/${{ env.CONFIG_FILE }}" ]; then
-          echo "Found custom config file, using it..."
-          cp -f $GITHUB_WORKSPACE/${{ env.CONFIG_FILE }} .config
-        else
-          echo "Custom config not found, using default config..."
-          echo "CONFIG_TARGET_mediatek=y" > .config
-          echo "CONFIG_TARGET_mediatek_filogic=y" >> .config
-          echo "CONFIG_TARGET_mediatek_filogic_DEVICE_cmcc_rax3000m=y" >> .config
-        fi
-        cat .config
-        
     - name: Download DL Package(下载DL软件包)
       run: |
         cd $OPENWRT_PATH
+        # 使用源码仓库自带的 defconfig 文件
+        if [ -f "${{ env.CONFIG_FILE }}" ]; then
+          echo "Found config file in source repo: ${{ env.CONFIG_FILE }}"
+          cp -f ${{ env.CONFIG_FILE }} .config
+          echo "Config file content:"
+          cat .config
+        else
+          echo "ERROR: Config file not found: ${{ env.CONFIG_FILE }}"
+          echo "Available defconfig files:"
+          ls -la defconfig/ || echo "defconfig directory not found"
+          exit 1
+        fi
         make defconfig
         make download -j8
         find dl -size -1024c -exec ls -l {} \;
