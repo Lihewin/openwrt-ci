@@ -92,10 +92,22 @@ jobs:
         ./scripts/feeds update -a
         ./scripts/feeds install -a
 
+    - name: Load Custom Configuration(加载自定义配置)
+      run: |
+        cd $OPENWRT_PATH
+        if [ -f "$GITHUB_WORKSPACE/${{ env.CONFIG_FILE }}" ]; then
+          echo "Found custom config file, using it..."
+          cp -f $GITHUB_WORKSPACE/${{ env.CONFIG_FILE }} .config
+        else
+          echo "Custom config not found, using default config..."
+          echo "CONFIG_TARGET_mediatek=y" > .config
+          echo "CONFIG_TARGET_mediatek_filogic=y" >> .config
+          echo "CONFIG_TARGET_mediatek_filogic_DEVICE_cmcc_rax3000m=y" >> .config
+        fi
+        cat .config
+        
     - name: Download DL Package(下载DL软件包)
       run: |
-        # 将仓库内的 defconfig 复制为 .config（使用 mt7981-ax3000.config）
-        cp -f $OPENWRT_PATH/${{ env.CONFIG_FILE }} $OPENWRT_PATH/.config
         cd $OPENWRT_PATH
         make defconfig
         make download -j8
@@ -124,6 +136,9 @@ jobs:
         cp $OPENWRT_PATH/.config full.config
         rm -rf packages feeds.buildinfo version.buildinfo
         echo "FIRMWARE_PATH=$PWD" >> $GITHUB_ENV
+        echo "Files to be uploaded:"
+        ls -lh *.bin *.img 2>/dev/null || echo "Warning: No firmware images found!"
+        ls -lh
 
     - name: Upload Firmware To Release(发布固件)
       if: steps.compile.outputs.status == 'success' && env.FIRMWARE_RELEASE == 'true'
