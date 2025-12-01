@@ -3,7 +3,12 @@ name: Build MT7981-AX3000
 # Add a button to trigger the workflow
 on: 
   workflow_dispatch:
-
+  push:
+    branches:
+      - master
+    
+permissions:
+  contents: write
 env:
   REPO_URL: https://github.com/padavanonly/immortalwrt-mt798x-6.6.git
   REPO_BRANCH: "openwrt-24.10-6.6"
